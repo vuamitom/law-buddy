@@ -39,14 +39,14 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
 8. Trả lời bằng tiếng Việt.
 9. KHÔNG đưa ra lời khuyên pháp lý cụ thể hoặc tư vấn cá nhân hóa. Chỉ cung cấp thông tin dựa trên luật."""
 
-    def generate(self, question: str) -> str:
+    def generate(self, question: str) -> dict:
         """Generate a response to a tax law question.
         
         Args:
             question: The user's question about Vietnamese tax law.
             
         Returns:
-            Generated response from the LLM.
+            dict: Contains 'response' (model response) and 'functions' (list of function calls).
         """
         try:
             model = "gemini-2.5-flash"
@@ -96,6 +96,9 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
                 contents=contents,
                 config=generate_content_config,
             )
+            # Initialize function calls list
+            function_calls = []
+            
             # Check if there are function calls
             if response.function_calls:
                 function_call = response.function_calls[0]
@@ -106,6 +109,24 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
                     
                     # Call the search_law function
                     law_results = search_law(keywords)
+                    print('>>> law_results', law_results)
+                    
+                    # Handle the new response format
+                    if "error" in law_results:
+                        function_response = {"output": f"Lỗi tìm kiếm: {law_results['error']}"}
+                        function_result = law_results['error']
+                    else:
+                        # Join all article contents with separators
+                        articles_text = "\n\n--- Văn bản khác ---\n\n".join(law_results["data"])
+                        function_response = {"output": articles_text}
+                        function_result = articles_text
+                    
+                    # Add function call info to the list
+                    function_calls.append({
+                        "function": function_call.name,
+                        "result": function_result
+                    })
+                    
                     # Create new contents with function response
                     contents_with_function = contents + [
                         types.Content(
@@ -122,7 +143,7 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
                             parts=[
                                 types.Part.from_function_response(
                                     name="lawLookup",
-                                    response={"output": str(law_results)},
+                                    response=function_response,
                                 ),
                             ],
                         ),
@@ -135,16 +156,25 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
                         config=generate_content_config,
                     )
                     
-                    return final_response.text
+                    return {
+                        "response": final_response.text,
+                        "functions": function_calls
+                    }
             
-            return response.text
+            return {
+                "response": response.text,
+                "functions": function_calls
+            }
             
         except Exception as e:
-            return f"Lỗi khi tạo phản hồi: {str(e)}"
+            return {
+                "response": f"Lỗi khi tạo phản hồi: {str(e)}",
+                "functions": []
+            }
 
 
 
-def generate(question: str, api_key: Optional[str] = None) -> str:
+def generate(question: str, api_key: Optional[str] = None) -> dict:
     """Convenience function to generate a response.
     
     Args:
@@ -152,7 +182,7 @@ def generate(question: str, api_key: Optional[str] = None) -> str:
         api_key: Optional Google AI API key.
         
     Returns:
-        Generated response from the LLM.
+        dict: Contains 'response' (model response) and 'functions' (list of function calls).
     """
     generator = LLMGenerator(api_key=api_key)
     return generator.generate(question)

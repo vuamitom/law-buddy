@@ -20,13 +20,11 @@ def search_article(query):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
 
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-        html_content = response.text
-    except requests.exceptions.RequestException as e:
-        print(f"Error requesting the URL: {e}")
-        return []
+    
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
+    html_content = response.text
+    
 
     soup = BeautifulSoup(html_content, 'html.parser')
     results = []
@@ -70,13 +68,11 @@ def read_article(url):
         'Cookie': 'vqc=1; _ga=GA1.1.232254569.1752674590; G_ENABLED_IDPS=google; Culture=vi; __qca=P1-e95a8109-244e-44a9-b84f-6a402ca56e85; jiyakeji_uuid=cb1e9bb0-624d-11f0-833a-411d0f22b435; Cookie_VB=close; ruirophaply-covi19=17; ASP.NET_SessionId=p3qt3naj50acuy3a2qv2e0wj; __utma=173276988.232254569.1752674590.1752760844.1752760844.1; __utmc=173276988; __utmz=173276988.1752760844.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __uidac=016879020d31272fd6076fa8d12f4602; cto_bundle=kTzV6F9wVklER3JYSWc4UDNkQ2JzNXg2bnJJZEF2dWhaYyUyRlh4c3NEeXlCd2lLVUx5VGpBeG1nY0RPZllCbFhCelBWVFl3TVFHbiUyRnUlMkJLMUhldDNFTGxLOEJYUU13MjhkQjRnZXFtbCUyRjhtbmI2WFF3c2ZHTURkQnNkTWdRQVJrQnJTcEFDZ1JwcU44RzhzSXF3Y1h6d2R6eWFVbEhSeXFkNTdKRjhVNEhHM3hLS3NwdWs4RXNia2M5NnR6RW1kWXhkak9kU1EzV0VWa29YeEFuTUpEc3hTUGNEenclM0QlM0Q; __RC=4; __R=1; _uidcms=505192801946755517; __tb=0; __IP=0; memberga=Anonymous[2001:4860:7:812::dd]; __utmt=1; __utmb=173276988.16.9.1752762605800; _ga_PGVTRDMJGD=GS2.1.s1752760833$o3$g1$t1752762606$j59$l0$h0; _ga_BJ8R96BC8C=GS2.1.s1752760833$o3$g1$t1752762606$j59$l0$h0; _ga_E8YMVYW6Y9=GS2.1.s1752760834$o2$g1$t1752762606$j59$l0$h1402611222; __gads=ID=5b18f03691efe882:T=1752674596:RT=1752762608:S=ALNI_MaDtCRF7zwG30KGnuuOPl-cKFND3g; __gpi=UID=00001163df988b67:T=1752674596:RT=1752762608:S=ALNI_MZ5nozHCyRpDe41F2cC9EgtEgAdjQ; __eoi=ID=9b355a5bdf82d70a:T=1752674596:RT=1752762608:S=AA-AfjbSMthL_DhX_MpmVZ8Dssba; _dd_s=logs=1&id=289ba145-c53c-48d4-8f1c-259c0c20ffc4&created=1752760834126&expire=1752763508329; FCNEC=%5B%5B%22AKsRol_Ub6aFcpgWecoG6EauZciv0jjdKvr53-ZpTL3iQOQJgTIixjJems1GCvdd_mE5ixTAGLJFhbtgudMDDPE5LFD7IUynx2dFnGA3Z-XNuf6s62uVYnYKgF81Bf-AtqeWHmOJ1nun_39NG0G5rYpHYg-hfKCUNQ%3D%3D%22%5D%5D; __uif=__uid%3A505192801946755517%7C__ui%3A-1%7C__create%3A1750519281'
     }
 
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-        html_content = response.text
-    except requests.exceptions.RequestException as e:
-        print(f"Error requesting the URL: {e}")
-        return ""
+    
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
+    html_content = response.text
+    
 
     soup = BeautifulSoup(html_content, 'html.parser')
 
@@ -90,9 +86,35 @@ def read_article(url):
         return ""
 
 def search_law(query):
-    articles = search_article(query)
-    results = []
-    for article_url in articles[:5]:
-        content = read_article(article_url)
-        results.append(content)
-    return results
+    """
+    Searches for law articles and returns their content.
+    
+    Args:
+        query (str): The search keyword.
+        
+    Returns:
+        dict: Either {"data": results} on success or {"error": error_message} on failure.
+    """
+    try:
+        articles = search_article(query)
+        
+        if not articles:
+            return {"error": "Không tìm thấy văn bản pháp luật nào phù hợp với từ khóa"}
+        
+        results = []
+        for article_url in articles[:5]:
+            try:
+                content = read_article(article_url)
+                if content:  # Only add non-empty content
+                    results.append(content)
+            except Exception as e:
+                print(f"Lỗi khi đọc bài viết {article_url}: {str(e)}")
+                continue
+        
+        if not results:
+            return {"error": "Không thể đọc được nội dung từ các văn bản tìm thấy"}
+            
+        return {"data": results}
+        
+    except Exception as e:
+        return {"error": f"Lỗi khi tìm kiếm: {str(e)}"}

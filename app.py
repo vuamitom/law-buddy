@@ -82,11 +82,23 @@ with col1:
         with st.chat_message("assistant"):
             with st.spinner("Đang tìm kiếm thông tin pháp luật..."):
                 try:
-                    response = generate(prompt)
-                    st.markdown(response)
+                    result = generate(prompt)
+                    response_text = result["response"]
+                    functions_used = result["functions"]
+                    
+                    # Display the main response
+                    st.markdown(response_text)
+                    
+                    # Show function calls info if any
+                    if functions_used:
+                        with st.expander("🔍 Chi tiết tìm kiếm", expanded=False):
+                            for func in functions_used:
+                                st.write(f"**Chức năng:** {func['function']}")
+                                if func['result']:
+                                    st.text_area("Kết quả tìm kiếm:", func['result'], height=100)
                     
                     # Add assistant response to chat history
-                    st.session_state.messages.append({"role": "assistant", "content": response})
+                    st.session_state.messages.append({"role": "assistant", "content": response_text})
                     
                 except Exception as e:
                     error_msg = f"Xin lỗi, đã có lỗi xảy ra: {str(e)}"
