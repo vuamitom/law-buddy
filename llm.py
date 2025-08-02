@@ -31,13 +31,12 @@ class LLMGenerator:
 Khi người dùng đặt câu hỏi, bạn sẽ:
 1. Xác định vấn đề pháp lý thuế mà người dùng muốn tìm hiểu.
 2. **Trước khi đưa ra câu trả lời, hãy trình bày ngắn gọn các bước bạn sẽ thực hiện để tìm kiếm và tổng hợp thông tin, ví dụ: "Để trả lời câu hỏi của bạn, tôi sẽ thực hiện các bước sau: [liệt kê các bước].**
-3. Tìm kiếm các quy định pháp luật, thông tư, nghị định, luật liên quan đến vấn đề đó.
+3. Tìm kiếm các quy định pháp luật, thông tư, nghị định, luật và dự thảo luật liên quan đến vấn đề đó. Nếu có hãy trích dẫn đường dẫn tới nguồn thông tin. 
 4. Trích dẫn chính xác các điều, khoản, điểm của văn bản pháp luật nếu có thể.
 5. Giải thích nội dung của quy định đó một cách rõ ràng, dễ hiểu.
 6. Luôn ưu tiên các nguồn luật chính thức và mới nhất.
 7. Nếu câu hỏi liên quan đến tình huống cụ thể cần tư vấn chuyên sâu, hãy khuyến nghị người dùng tìm kiếm sự tư vấn từ luật sư hoặc chuyên gia thuế có kinh nghiệm.
-8. Trả lời bằng tiếng Việt.
-9. KHÔNG đưa ra lời khuyên pháp lý cụ thể hoặc tư vấn cá nhân hóa. Chỉ cung cấp thông tin dựa trên luật."""
+8. Trả lời bằng tiếng Việt."""
 
     def generate(self, question: str) -> dict:
         """Generate a response to a tax law question.
@@ -51,25 +50,7 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
         try:
             model = "gemini-2.5-flash"
             
-            # Define tools with function declarations
-            tools = [
-                types.Tool(
-                    function_declarations=[
-                        types.FunctionDeclaration(
-                            name="lawLookup",
-                            description="Tra cứu luật việt nam hiện hành với từ khóa keywords",
-                            parameters=genai.types.Schema(
-                                type=genai.types.Type.OBJECT,
-                                properties={
-                                    "keywords": genai.types.Schema(
-                                        type=genai.types.Type.STRING,
-                                    ),
-                                },
-                            ),
-                        ),
-                    ]
-                )
-            ]
+            # Function calls disabled - tools removed
             
             # Create initial content
             contents = [
@@ -80,14 +61,18 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
                     ],
                 ),
             ]
+            tools = [
+                types.Tool(googleSearch=types.GoogleSearch(
+                )),
+            ]
             
             # Create generate content config
             generate_content_config = types.GenerateContentConfig(
-                tools=tools,
                 response_mime_type="text/plain",
                 system_instruction=[
                     types.Part.from_text(text=self.system_prompt),
                 ],
+                tools=tools,
             )
             
             # Generate initial response
@@ -96,74 +81,10 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
                 contents=contents,
                 config=generate_content_config,
             )
-            # Initialize function calls list
-            function_calls = []
-            
-            # Check if there are function calls
-            if response.function_calls:
-                function_call = response.function_calls[0]
-                
-                if function_call.name == "lawLookup":
-                    # Extract keywords from function call
-                    keywords = function_call.args.get("keywords", "")
-                    
-                    # Call the search_law function
-                    law_results = search_law(keywords)
-                    print('>>> law_results', law_results)
-                    
-                    # Handle the new response format
-                    if "error" in law_results:
-                        function_response = {"output": f"Lỗi tìm kiếm: {law_results['error']}"}
-                        function_result = law_results['error']
-                    else:
-                        # Join all article contents with separators
-                        articles_text = "\n\n--- Văn bản khác ---\n\n".join(law_results["data"])
-                        function_response = {"output": articles_text}
-                        function_result = articles_text
-                    
-                    # Add function call info to the list
-                    function_calls.append({
-                        "function": function_call.name,
-                        "result": function_result
-                    })
-                    
-                    # Create new contents with function response
-                    contents_with_function = contents + [
-                        types.Content(
-                            role="model",
-                            parts=[
-                                types.Part.from_function_call(
-                                    name="lawLookup",
-                                    args=function_call.args
-                                ),
-                            ],
-                        ),
-                        types.Content(
-                            role="function",
-                            parts=[
-                                types.Part.from_function_response(
-                                    name="lawLookup",
-                                    response=function_response,
-                                ),
-                            ],
-                        ),
-                    ]
-                    
-                    # Generate final response with function results
-                    final_response = self.client.models.generate_content(
-                        model=model,
-                        contents=contents_with_function,
-                        config=generate_content_config,
-                    )
-                    
-                    return {
-                        "response": final_response.text,
-                        "functions": function_calls
-                    }
-            
+            # Function calls disabled - return direct response
             return {
                 "response": response.text,
-                "functions": function_calls
+                "functions": []
             }
             
         except Exception as e:

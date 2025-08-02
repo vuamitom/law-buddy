@@ -92,10 +92,30 @@ with col1:
                     # Show function calls info if any
                     if functions_used:
                         with st.expander("🔍 Chi tiết tìm kiếm", expanded=False):
-                            for func in functions_used:
+                            for i, func in enumerate(functions_used, 1):
+                                st.markdown(f"### 🔧 Lần tìm kiếm {i}")
                                 st.write(f"**Chức năng:** {func['function']}")
+                                
+                                # Show parameters if available
+                                if 'params' in func and func['params']:
+                                    st.write("**Tham số:**")
+                                    for key, value in func['params'].items():
+                                        st.write(f"- {key}: `{value}`")
+                                
+                                # Show result
                                 if func['result']:
-                                    st.text_area("Kết quả tìm kiếm:", func['result'], height=100)
+                                    st.write("**Kết quả:**")
+                                    st.text_area(
+                                        "Nội dung tìm được:", 
+                                        func['result'], 
+                                        height=150,
+                                        key=f"result_{i}"
+                                    )
+                                else:
+                                    st.write("**Kết quả:** Không có dữ liệu")
+                                
+                                if i < len(functions_used):
+                                    st.divider()
                     
                     # Add assistant response to chat history
                     st.session_state.messages.append({"role": "assistant", "content": response_text})
