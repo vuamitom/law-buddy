@@ -38,11 +38,12 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
 7. Nếu câu hỏi liên quan đến tình huống cụ thể cần tư vấn chuyên sâu, hãy khuyến nghị người dùng tìm kiếm sự tư vấn từ luật sư hoặc chuyên gia thuế có kinh nghiệm.
 8. Trả lời bằng tiếng Việt."""
 
-    def generate(self, question: str) -> dict:
+    def generate(self, question: str, system_prompt: Optional[str] = None) -> dict:
         """Generate a response to a tax law question.
         
         Args:
             question: The user's question about Vietnamese tax law.
+            system_prompt: Optional custom system prompt to override default.
             
         Returns:
             dict: Contains 'response' (model response) and 'functions' (list of function calls).
@@ -66,11 +67,14 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
                 )),
             ]
             
+            # Use custom system prompt if provided, otherwise use default
+            prompt_to_use = system_prompt if system_prompt is not None else self.system_prompt
+            
             # Create generate content config
             generate_content_config = types.GenerateContentConfig(
                 response_mime_type="text/plain",
                 system_instruction=[
-                    types.Part.from_text(text=self.system_prompt),
+                    types.Part.from_text(text=prompt_to_use),
                 ],
                 tools=tools,
             )
@@ -95,15 +99,16 @@ Khi người dùng đặt câu hỏi, bạn sẽ:
 
 
 
-def generate(question: str, api_key: Optional[str] = None) -> dict:
+def generate(question: str, api_key: Optional[str] = None, system_prompt: Optional[str] = None) -> dict:
     """Convenience function to generate a response.
     
     Args:
         question: The user's question about Vietnamese tax law.
         api_key: Optional Google AI API key.
+        system_prompt: Optional custom system prompt to override default.
         
     Returns:
         dict: Contains 'response' (model response) and 'functions' (list of function calls).
     """
     generator = LLMGenerator(api_key=api_key)
-    return generator.generate(question)
+    return generator.generate(question, system_prompt=system_prompt)

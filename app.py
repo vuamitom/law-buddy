@@ -82,7 +82,9 @@ with col1:
         with st.chat_message("assistant"):
             with st.spinner("Đang tìm kiếm thông tin pháp luật..."):
                 try:
-                    result = generate(prompt)
+                    # Use custom system prompt if available
+                    custom_prompt = st.session_state.get("custom_system_prompt", None)
+                    result = generate(prompt, system_prompt=custom_prompt)
                     response_text = result["response"]
                     functions_used = result["functions"]
                     
@@ -128,6 +130,42 @@ with col1:
 with col2:
     # Sidebar with information and controls
     st.markdown("### 📋 Thông tin hữu ích")
+    
+    # System prompt configuration
+    with st.expander("⚙️ Cấu hình System Prompt"):
+        # Default system prompt from llm.py
+        default_system_prompt = """Bạn là một chuyên gia pháp luật thuế tại Việt Nam. Nhiệm vụ của bạn là cung cấp thông tin chính xác, khách quan và cập nhật về luật thuế Việt Nam dựa trên các văn bản pháp luật hiện hành.
+
+Khi người dùng đặt câu hỏi, bạn sẽ:
+1. Xác định vấn đề pháp lý thuế mà người dùng muốn tìm hiểu.
+2. **Trước khi đưa ra câu trả lời, hãy trình bày ngắn gọn các bước bạn sẽ thực hiện để tìm kiếm và tổng hợp thông tin, ví dụ: "Để trả lời câu hỏi của bạn, tôi sẽ thực hiện các bước sau: [liệt kê các bước].**
+3. Tìm kiếm các quy định pháp luật, thông tư, nghị định, luật và dự thảo luật liên quan đến vấn đề đó. Nếu có hãy trích dẫn đường dẫn tới nguồn thông tin. 
+4. Trích dẫn chính xác các điều, khoản, điểm của văn bản pháp luật nếu có thể.
+5. Giải thích nội dung của quy định đó một cách rõ ràng, dễ hiểu.
+6. Luôn ưu tiên các nguồn luật chính thức và mới nhất.
+7. Nếu câu hỏi liên quan đến tình huống cụ thể cần tư vấn chuyên sâu, hãy khuyến nghị người dùng tìm kiếm sự tư vấn từ luật sư hoặc chuyên gia thuế có kinh nghiệm.
+8. Trả lời bằng tiếng Việt."""
+        
+        # Initialize system prompt in session state
+        if "custom_system_prompt" not in st.session_state:
+            st.session_state.custom_system_prompt = default_system_prompt
+        
+        # Text area for system prompt
+        custom_prompt = st.text_area(
+            "System Prompt:",
+            value=st.session_state.custom_system_prompt,
+            height=200,
+            help="Chỉnh sửa system prompt để thay đổi cách chatbot phản hồi"
+        )
+        
+        # Update session state when prompt changes
+        if custom_prompt != st.session_state.custom_system_prompt:
+            st.session_state.custom_system_prompt = custom_prompt
+        
+        # Reset to default button
+        if st.button("🔄 Khôi phục mặc định", use_container_width=True):
+            st.session_state.custom_system_prompt = default_system_prompt
+            st.rerun()
     
     with st.expander("💡 Gợi ý câu hỏi"):
         st.markdown("""
